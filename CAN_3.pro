@@ -11,18 +11,22 @@ CONFIG += c++17
 SOURCES += \
     main.cpp \
     mainwindow.cpp \
+    settingswindow.cpp \
     systec_can.cpp
 
 HEADERS += \
     mainwindow.h \
+    settingswindow.h \
     systec_can.h
 
 FORMS += \
-    mainwindow.ui
+    mainwindow.ui \
+    settingswindow.ui
 
 #win32:RC_FILE = file.rc #иконка приложенияwin32:RC_FILE = file.rc #иконка приложения
 
-LIBS +=-L"C:\Program Files (x86)\SYSTEC-electronic\USB-CANmodul Utility Disk\Examples\lib" -lUSBCAN32#подключаем библиотеку DLL
+#LIBS +=-L"C:\Program Files (x86)\SYSTEC-electronic\USB-CANmodul Utility Disk\Examples\lib" -lUSBCAN32#подключаем библиотеку DLL
+LIBS +=-L"C:\Program Files (x86)\SYSTEC-electronic\USB-CANmodul Utility Disk\lib.418" -lUSBCAN32#подключаем библиотеку DLL
 
 #
 

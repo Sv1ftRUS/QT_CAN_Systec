@@ -112,6 +112,9 @@ uint Systec_CAN::BUS_Status_Systec()
 
 UCANRET Systec_CAN::WriteMSG_Systec(tCanMsgStruct &CanMsgTx)
 {
+    //qDebug()<<CanMsgTx.m_dwID;
+    //CanMsgTx.m_dwID=(quint32)0x18DD;//A40F1;
+    //qDebug()<<CanMsgTx.m_dwID;
     return UcanWriteCanMsg (*pUcanHandle_p, &CanMsgTx);
 }
 

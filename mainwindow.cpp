@@ -157,13 +157,13 @@ MainWindow::MainWindow(QWidget *parent)
         else
             m_testerPresentTimer->stop();});
     connect(m_testerPresentTimer, &QTimer::timeout, [&](){//testerPresent
-        CanMsgTxUDS = {TxUDSFrameId,USBCAN_MSG_FF_STD, 8, {0x02, 0x3E, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00}, 0};
+        CanMsgTxUDS = {TxUDSFrameId,(TxUDSFrameId>0xFFF ? USBCAN_MSG_FF_EXT : USBCAN_MSG_FF_STD), 8, {0x02, 0x3E, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00}, 0};
         /*//BYTE msgData[8]={0x02, 0x3E, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00};
-        //tCanMsgStruct Msg={TxUDSFrameId,USBCAN_MSG_FF_STD, sizeof(msgData), {0x02, 0x3E, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00}, 0};
+        //tCanMsgStruct Msg={TxUDSFrameId,(TxUDSFrameId>0xFFF ? USBCAN_MSG_FF_EXT : USBCAN_MSG_FF_STD), sizeof(msgData), {0x02, 0x3E, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00}, 0};
         //CanMsgTxUDS=Msg;
-        //tCanMsgStruct Msg={TxUDSFrameId,USBCAN_MSG_FF_STD, sizeof(msgData), msgData, 0};
+        //tCanMsgStruct Msg={TxUDSFrameId,(TxUDSFrameId>0xFFF ? USBCAN_MSG_FF_EXT : USBCAN_MSG_FF_STD), sizeof(msgData), msgData, 0};
         CanMsgTxUDS.m_dwID = TxUDSFrameId;
-        CanMsgTxUDS.m_bFF = USBCAN_MSG_FF_STD;
+        CanMsgTxUDS.m_bFF = (TxUDSFrameId>0xFFF ? USBCAN_MSG_FF_EXT : USBCAN_MSG_FF_STD);
         CanMsgTxUDS.m_bDLC =sizeof(msgData);
         CanMsgTxUDS.m_bData[0]=msgData[0];
         CanMsgTxUDS.m_bData[1]=msgData[1];
@@ -175,6 +175,7 @@ MainWindow::MainWindow(QWidget *parent)
         CanMsgTxUDS.m_bData[7]=msgData[7];
         CanMsgTxUDS.m_dwTime = 0;*/
         auto ret = Systec_CAN_obj.WriteMSG_Systec (CanMsgTxUDS);
+        //qDebug()<<CanMsgTxUDS.m_dwID;
         if(ret)
             qDebug()<<"tester present Error:"<<(int) ret;
         ui->plainTextEdit_TesterECU_Excahge->insertPlainText("Tx:  "+ MainWindow::printCanMsg(CanMsgTxUDS)+"\n");
@@ -201,7 +202,7 @@ MainWindow::MainWindow(QWidget *parent)
                         //multiFrameData_counter=str.toInt(ok, 10) - 6;
                         multiFrameData_counter=(CanMsgRx.m_bData[1])-6;//вычислить из скольки фрепймов он состоит, и установить соответствующий флаг-счетчик
                         CanMsgRxUDS_Multi.append(CanMsgRxUDS);
-                        CanMsgTxUDS = {TxUDSFrameId,USBCAN_MSG_FF_STD, 8, {0x30, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 0};//послать ответный фрейм о готовности приема мультифреймов
+                        CanMsgTxUDS = {TxUDSFrameId,(TxUDSFrameId>0xFFF ? USBCAN_MSG_FF_EXT : USBCAN_MSG_FF_STD), 8, {0x30, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 0};//послать ответный фрейм о готовности приема мультифреймов
                         auto ret = Systec_CAN_obj.WriteMSG_Systec (CanMsgTxUDS);
                         if(ret)
                             qDebug()<<"MultiFrame resp Error:"<<(int) ret;
@@ -219,6 +220,8 @@ MainWindow::MainWindow(QWidget *parent)
             }
     });
     connect(m_sequenceFileTimer, &QTimer::timeout, [&](){if(!SequenceFile->atEnd()) sequenceFileProcessing(SequenceFile->readLine());});//конект таймер тика с вызовом обрабочтика sequence-файла
+    //connect(this, &MainWindow::ConnectSettingsChange, &this->settingswindow, MainWindow::settingswindow.signal1);
+    connect(&settingswindow, &settingswindow::ConnectSettingsChange, this, &MainWindow::ConnectSettingsChange);
 }
 
 MainWindow::~MainWindow()
@@ -282,6 +285,7 @@ void MainWindow::on_pushButton_Open_Sequence_clicked()
 void MainWindow::on_lineEdit_Tester_ID_editingFinished()
 {
     TxUDSFrameId = ((ui->lineEdit_Tester_ID->text()).toUInt(0, 16));
+    //qDebug()<<TxUDSFrameId;
     ui->lineEdit_Tester_ID->setText("0x"+QString("%1").arg(TxUDSFrameId,0,16).toUpper());
 }
 
@@ -296,7 +300,7 @@ void MainWindow::on_pushButton_Send_clicked()
 {
     QByteArray Payload=QByteArray::fromHex((ui->lineEdit_Send_Data->text()).remove(QLatin1Char(' ')).toLatin1());
     CanMsgTxUDS.m_dwID = TxUDSFrameId;
-    CanMsgTxUDS.m_bFF = USBCAN_MSG_FF_STD;
+    CanMsgTxUDS.m_bFF = (TxUDSFrameId>0xFFF ? USBCAN_MSG_FF_EXT : USBCAN_MSG_FF_STD);
     for(int i=0; i<Payload.length(); i++)
         CanMsgTxUDS.m_bData[i]=Payload[i];
     CanMsgTxUDS.m_bDLC =sizeof(CanMsgTxUDS.m_bData);
@@ -463,7 +467,7 @@ void MainWindow::sequenceFileProcessing(const QString &SequenceFileStr)
 
         QByteArray Payload=QByteArray::fromHex(tmpStr.toLatin1());
         CanMsgTxUDS.m_dwID = TxUDSFrameId;
-        CanMsgTxUDS.m_bFF = USBCAN_MSG_FF_STD;
+        CanMsgTxUDS.m_bFF = (TxUDSFrameId>0xFFF ? USBCAN_MSG_FF_EXT : USBCAN_MSG_FF_STD);
         //qDebug()<<"test1:"<<tmpStr;
         //qDebug()<<"test2:"<<Payload;
         for(int i=0; i<Payload.length(); i++)
@@ -584,3 +588,52 @@ void MainWindow::on_comboBox_IDlen_currentIndexChanged(int index)
     ui->lineEdit_Tracking_ID->setValidator(m_hexIntegerValidator);
 }
 
+
+void MainWindow::on_pushButton_Settings_clicked()
+{
+    settingswindow.show();
+}
+
+void MainWindow::ConnectSettingsChange(int DeviceNum, int BusSpeedNum, int IDlenNum)
+{
+    qDebug()<<DeviceNum<<BusSpeedNum<<IDlenNum;
+    //BAUDRATE
+    DWORD USBCAN_BAUD = 0;
+    switch(BusSpeedNum)
+    {
+    case 0:
+        USBCAN_BAUD = USBCAN_BAUD_500kBit;
+        //qDebug()<<"500";
+        break;
+    case 1:
+        USBCAN_BAUD = USBCAN_BAUD_250kBit;
+        //qDebug()<<"250";
+        break;
+    default:
+        break;
+    }
+
+    //IDlength
+    auto m_hexIntegerValidator = new HexIntegerValidator(this);
+
+    switch(IDlenNum)
+    {
+    case 0:
+        //qDebug()<<"normal";
+        m_hexIntegerValidator->setMaxID(0x7FF);
+        break;
+    case 1:
+        //qDebug()<<"extended";
+        m_hexIntegerValidator->setMaxID(0x1FFFFFFFF);
+        break;
+    default:
+        break;
+    }
+    ui->lineEdit_Tester_ID->setValidator(m_hexIntegerValidator);
+    ui->lineEdit_ECU_ID->setValidator(m_hexIntegerValidator);
+    ui->lineEdit_Tracking_ID->setValidator(m_hexIntegerValidator);
+
+    tUcanInitCanParam InitCanParam_p = {sizeof(tUcanInitCanParam), kUcanModeNormal, HIBYTE (USBCAN_BAUD), LOBYTE (USBCAN_BAUD), true, 0xFFFFFFFF, 0x00000000, 0, 0, 0};
+    Systec_CAN_obj.CAN_ReInit_Systec(InitCanParam_p);
+
+}

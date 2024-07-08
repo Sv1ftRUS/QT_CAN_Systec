@@ -8,6 +8,8 @@
 #include <QAxWidget> // для работы с вордом
 #include <QAxObject> // для работы с вордом
 
+#include <settingswindow.h>
+
 //File
 #include <QFile>
 #include <QFileDialog>
@@ -30,8 +32,8 @@
 #include "UsbCanLs.h"
 #include "UsbCanUp.h"
 
-#define bitIDlen11
-//#define bitIDlen29
+//#define bitIDlen11
+#define bitIDlen29
 #ifdef bitIDlen11
 #define BAUDRATE USBCAN_BAUD_500kBit
 #define testerID 0x745
@@ -86,12 +88,17 @@ private slots:
     //void recivedFrame(tCanMsgStruct *CanMsgRx);
 
     void on_comboBox_BusSpeed_currentIndexChanged(int index);
+    //void settingswindow::on_comboBox_BusSpeed_currentIndexChanged(int index);
 
     void on_comboBox_IDlen_currentIndexChanged(int index);
 
+    void on_pushButton_Settings_clicked();
+public slots:
+    void ConnectSettingsChange(int a, int b, int c);
 private:
 
     Ui::MainWindow *ui;
+    settingswindow settingswindow;
     //----для либы Qt
     //QCanBusDevice   *m_device;
     //QCanBusFrame    *RxFrame = new QCanBusFrame(QCanBusFrame::DataFrame);
