@@ -1,4 +1,5 @@
-QT       += core gui
+QT += core gui
+QT += serialport
 QT += serialbus widgets #без этого КАН хидеры не подключаются
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -9,19 +10,23 @@ CONFIG += c++17
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    can_adapter.cpp \
     main.cpp \
-    mainwindow.cpp \
-    settingswindow.cpp \
-    systec_can.cpp
+    main_window.cpp \
+    settings_window.cpp \
+    systec_can.cpp \
+    vul_can.cpp
 
 HEADERS += \
-    mainwindow.h \
-    settingswindow.h \
-    systec_can.h
+    can_adapter.h \
+    main_window.h \
+    settings_window.h \
+    systec_can.h \
+    vul_can.h
 
 FORMS += \
-    mainwindow.ui \
-    settingswindow.ui
+    main_window.ui \
+    settings_window.ui
 
 #win32:RC_FILE = file.rc #иконка приложенияwin32:RC_FILE = file.rc #иконка приложения
 

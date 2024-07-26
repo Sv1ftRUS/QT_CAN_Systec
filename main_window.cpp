@@ -1,9 +1,10 @@
 //#import "USBCAN32.dll"
-
-#include "mainwindow.h"
+#include <QIODevice>
+#include "main_window.h"
 #include "systec_can.h"
 #include "qdebug.h"
-#include "ui_mainwindow.h"
+#include "ui_main_window.h"
+#include "can_adapter.h"
 /*
 #include "QFile"
 #include <QFileDialog>
@@ -78,7 +79,6 @@ QValidator::State HexStringValidator::validate(QString &input, int &pos) const
     QString data = input;
     data.remove(space);
 
-
     if (data.isEmpty())
         return Intermediate;
 
@@ -97,7 +97,6 @@ QValidator::State HexStringValidator::validate(QString &input, int &pos) const
         input.insert(input.size() - 1, space);
         pos = input.size();
     }
-
     return Acceptable;
 }
 
@@ -107,10 +106,6 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
     this->setFixedSize(600, 400);
-    ui->comboBox_IDlen->addItem("ID 11 Bit");
-    ui->comboBox_IDlen->addItem("ID 29 Bit");
-    ui->comboBox_BusSpeed->addItem("500 kBit/s");
-    ui->comboBox_BusSpeed->addItem("250 kBit/s");
 
     //----------------Word Testing----------------------------
 /*
@@ -139,7 +134,7 @@ MainWindow::MainWindow(QWidget *parent)
 */
 
     tUcanInitCanParam InitCanParam_p = {sizeof(tUcanInitCanParam), kUcanModeNormal, HIBYTE (USBCAN_BAUD_500kBit), LOBYTE (USBCAN_BAUD_500kBit), true, 0xFFFFFFFF, 0x00000000, 0, 0, 0};
-    Systec_CAN_obj.CAN_Init_Systec(InitCanParam_p);
+    CAN_Adapter_ptr->Init(InitCanParam_p);
 
     //m_busStatusTimer->start(1000);
     m_sequenceFileTimer->stop();
@@ -150,45 +145,27 @@ MainWindow::MainWindow(QWidget *parent)
     ui->lineEdit_ECU_ID->setValidator(m_hexIntegerValidator);
     ui->lineEdit_Tracking_ID->setValidator(m_hexIntegerValidator);
     ui->lineEdit_Send_Data->setValidator(m_HexStringValidator);
-
     connect(ui->radioButton_testerPresent, &QRadioButton::clicked, this, [&](bool checked){//запуск тапймера testerPresent
         if(checked)
             m_testerPresentTimer->start(1000);
         else
             m_testerPresentTimer->stop();});
     connect(m_testerPresentTimer, &QTimer::timeout, [&](){//testerPresent
-        CanMsgTxUDS = {TxUDSFrameId,(TxUDSFrameId>0xFFF ? USBCAN_MSG_FF_EXT : USBCAN_MSG_FF_STD), 8, {0x02, 0x3E, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00}, 0};
-        /*//BYTE msgData[8]={0x02, 0x3E, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00};
-        //tCanMsgStruct Msg={TxUDSFrameId,(TxUDSFrameId>0xFFF ? USBCAN_MSG_FF_EXT : USBCAN_MSG_FF_STD), sizeof(msgData), {0x02, 0x3E, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00}, 0};
-        //CanMsgTxUDS=Msg;
-        //tCanMsgStruct Msg={TxUDSFrameId,(TxUDSFrameId>0xFFF ? USBCAN_MSG_FF_EXT : USBCAN_MSG_FF_STD), sizeof(msgData), msgData, 0};
-        CanMsgTxUDS.m_dwID = TxUDSFrameId;
-        CanMsgTxUDS.m_bFF = (TxUDSFrameId>0xFFF ? USBCAN_MSG_FF_EXT : USBCAN_MSG_FF_STD);
-        CanMsgTxUDS.m_bDLC =sizeof(msgData);
-        CanMsgTxUDS.m_bData[0]=msgData[0];
-        CanMsgTxUDS.m_bData[1]=msgData[1];
-        CanMsgTxUDS.m_bData[2]=msgData[2];
-        CanMsgTxUDS.m_bData[3]=msgData[3];
-        CanMsgTxUDS.m_bData[4]=msgData[4];
-        CanMsgTxUDS.m_bData[5]=msgData[5];
-        CanMsgTxUDS.m_bData[6]=msgData[6];
-        CanMsgTxUDS.m_bData[7]=msgData[7];
-        CanMsgTxUDS.m_dwTime = 0;*/
-        auto ret = Systec_CAN_obj.WriteMSG_Systec (CanMsgTxUDS);
-        //qDebug()<<CanMsgTxUDS.m_dwID;
+        CanMsgTxUDS = {TxUDSFrameId,(BYTE)(TxUDSFrameId>0xFFF ? USBCAN_MSG_FF_EXT : USBCAN_MSG_FF_STD), 8, {0x02, 0x3E, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00}, 0};
+        auto ret = CAN_Adapter_ptr->SendMsg (CanMsgTxUDS);
         if(ret)
             qDebug()<<"tester present Error:"<<(int) ret;
         ui->plainTextEdit_TesterECU_Excahge->insertPlainText("Tx:  "+ MainWindow::printCanMsg(CanMsgTxUDS)+"\n");
     });
 
-    connect(&Systec_CAN_obj, &Systec_CAN::CANStatusChanged, this, &MainWindow::on_CANStatusChanged);//статус шины-CAN
-    connect(&Systec_CAN_obj, &Systec_CAN::CANUSBConnectStatusChanged, this, &MainWindow::on_CANUSBConnectStatusChanged);//статус USB-CAN
+    connect(&Systec_CAN, &Systec_CAN::CANStatusChanged, this, &MainWindow::on_CANStatusChanged);//статус шины-CAN
+    connect(&Systec_CAN, &Systec_CAN::CANUSBConnectStatusChanged, this, &MainWindow::on_CANUSBConnectStatusChanged);//статус USB-CAN
 
     m_busRxTimer->start(10);//запуск выгребалки из стека
     connect(m_busRxTimer, &QTimer::timeout, [&](){//вывод интересующих фреймов
-            while (!Systec_CAN_obj.RxBufIsEmpty())
+            while (!CAN_Adapter_ptr->RxBufIsEmpty())
             {
-                CanMsgRx = Systec_CAN_obj.ReadMSG_Systec();
+                CanMsgRx = CAN_Adapter_ptr->ReadMsg();
                 if(CanMsgRx.m_dwID == RxUDSFrameId)
                 {
                     static qint32 multiFrameData_counter=0;
@@ -202,8 +179,8 @@ MainWindow::MainWindow(QWidget *parent)
                         //multiFrameData_counter=str.toInt(ok, 10) - 6;
                         multiFrameData_counter=(CanMsgRx.m_bData[1])-6;//вычислить из скольки фрепймов он состоит, и установить соответствующий флаг-счетчик
                         CanMsgRxUDS_Multi.append(CanMsgRxUDS);
-                        CanMsgTxUDS = {TxUDSFrameId,(TxUDSFrameId>0xFFF ? USBCAN_MSG_FF_EXT : USBCAN_MSG_FF_STD), 8, {0x30, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 0};//послать ответный фрейм о готовности приема мультифреймов
-                        auto ret = Systec_CAN_obj.WriteMSG_Systec (CanMsgTxUDS);
+                        CanMsgTxUDS = {TxUDSFrameId,(BYTE)(TxUDSFrameId>0xFFF ? USBCAN_MSG_FF_EXT : USBCAN_MSG_FF_STD), 8, {0x30, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 0};//послать ответный фрейм о готовности приема мультифреймов
+                        auto ret = CAN_Adapter_ptr->SendMsg (CanMsgTxUDS);
                         if(ret)
                             qDebug()<<"MultiFrame resp Error:"<<(int) ret;
                         else
@@ -220,8 +197,10 @@ MainWindow::MainWindow(QWidget *parent)
             }
     });
     connect(m_sequenceFileTimer, &QTimer::timeout, [&](){if(!SequenceFile->atEnd()) sequenceFileProcessing(SequenceFile->readLine());});//конект таймер тика с вызовом обрабочтика sequence-файла
-    //connect(this, &MainWindow::ConnectSettingsChange, &this->settingswindow, MainWindow::settingswindow.signal1);
     connect(&settingswindow, &settingswindow::ConnectSettingsChange, this, &MainWindow::ConnectSettingsChange);
+
+    connect(&Vul_Can, &vul_can::Vul_Can_readyRead, this, &MainWindow::recivedFrame);
+    //connect(&Systec_CAN_obj, &Systec_CAN::recivedFrame, this, &MainWindow::recivedFrame); //это вывод всех приходящих фреймов
 }
 
 MainWindow::~MainWindow()
@@ -306,7 +285,7 @@ void MainWindow::on_pushButton_Send_clicked()
     CanMsgTxUDS.m_bDLC =sizeof(CanMsgTxUDS.m_bData);
     CanMsgTxUDS.m_dwTime = 0;
 
-    auto ret = Systec_CAN_obj.WriteMSG_Systec (CanMsgTxUDS);
+    auto ret = CAN_Adapter_ptr->SendMsg (CanMsgTxUDS);
     if(ret)
         qDebug()<<"Push Button Send Error:"<<(int) ret;
     ui->plainTextEdit_TesterECU_Excahge->insertPlainText("Tx:  "+ MainWindow::printCanMsg(CanMsgTxUDS)+"\n");
@@ -412,7 +391,7 @@ void MainWindow::on_CANStatusChanged(tStatusStruct* pStatus_p)
         default:
         break;
     }
-    ui->label_5->setText(Systec_CAN_obj.DeviceInfo());
+    ui->label_5->setText(CAN_Adapter_ptr->DeviceInfo());
 }
 
 void MainWindow::on_CANUSBConnectStatusChanged(int bEvent_p)
@@ -436,6 +415,11 @@ void MainWindow::on_CANUSBConnectStatusChanged(int bEvent_p)
         default:
         break;
     }
+}
+
+void MainWindow::recivedFrame(tCanMsgStruct *CanMsgRx)//это вывод всех приходящих фреймов
+{
+    ui->plainTextEdit_TesterECU_Excahge->insertPlainText("Rx:  " + printCanMsg(*CanMsgRx)+"\n");
 }
 
 void MainWindow::sequenceFileProcessing(const QString &SequenceFileStr)
@@ -476,7 +460,7 @@ void MainWindow::sequenceFileProcessing(const QString &SequenceFileStr)
         CanMsgTxUDS.m_bDLC =sizeof(CanMsgTxUDS.m_bData);
         CanMsgTxUDS.m_dwTime = 0;
         //qDebug()<<"test3:"<<printCanMsg(CanMsgTxUDS);
-        auto ret = Systec_CAN_obj.WriteMSG_Systec (CanMsgTxUDS);
+        auto ret = CAN_Adapter_ptr->SendMsg (CanMsgTxUDS);
         if(ret)
             qDebug()<<"Sequence File Send Error:"<<(int) ret;
         ui->plainTextEdit_TesterECU_Excahge->insertPlainText("Tx:  "+ MainWindow::printCanMsg(CanMsgTxUDS)+"\n");
@@ -536,6 +520,7 @@ void MainWindow::sequenceFileProcessing(const QString &SequenceFileStr)
 
 QString MainWindow::printCanMsg(const tCanMsgStruct &CanMsg)
 {
+    qDebug()<<"MAIN WINDOW m_dwID"<<CanMsg.m_dwID;
     QString tempStr;
     for(auto i=0; i<CanMsg.m_bDLC; i++)
     {
@@ -543,51 +528,6 @@ QString MainWindow::printCanMsg(const tCanMsgStruct &CanMsg)
     }
     return ("0x"+QString::number(CanMsg.m_dwID, 16)+"   "+"["+QString::number(CanMsg.m_bDLC)+"]"+"   "+tempStr);
 }
-
-void MainWindow::on_comboBox_BusSpeed_currentIndexChanged(int index)
-{
-    //qDebug()<<"ind change "<<ui->comboBox_IDlen->currentIndex();
-    DWORD USBCAN_BAUD = 0;
-    switch(index)
-    {
-    case 0:
-        USBCAN_BAUD = USBCAN_BAUD_500kBit;
-        //qDebug()<<"500";
-        break;
-    case 1:
-        USBCAN_BAUD = USBCAN_BAUD_250kBit;
-        //qDebug()<<"250";
-        break;
-    default:
-        break;
-    }
-    tUcanInitCanParam InitCanParam_p = {sizeof(tUcanInitCanParam), kUcanModeNormal, HIBYTE (USBCAN_BAUD), LOBYTE (USBCAN_BAUD), true, 0xFFFFFFFF, 0x00000000, 0, 0, 0};
-    Systec_CAN_obj.CAN_ReInit_Systec(InitCanParam_p);
-}
-
-
-void MainWindow::on_comboBox_IDlen_currentIndexChanged(int index)
-{
-    auto m_hexIntegerValidator = new HexIntegerValidator(this);
-
-    switch(index)
-    {
-    case 0:
-        //qDebug()<<"normal";
-        m_hexIntegerValidator->setMaxID(0x7FF);
-        break;
-    case 1:
-        //qDebug()<<"extended";
-        m_hexIntegerValidator->setMaxID(0x1FFFFFFFF);
-        break;
-    default:
-        break;
-    }
-    ui->lineEdit_Tester_ID->setValidator(m_hexIntegerValidator);
-    ui->lineEdit_ECU_ID->setValidator(m_hexIntegerValidator);
-    ui->lineEdit_Tracking_ID->setValidator(m_hexIntegerValidator);
-}
-
 
 void MainWindow::on_pushButton_Settings_clicked()
 {
@@ -597,9 +537,21 @@ void MainWindow::on_pushButton_Settings_clicked()
 void MainWindow::ConnectSettingsChange(int DeviceNum, int BusSpeedNum, int IDlenNum)
 {
     qDebug()<<DeviceNum<<BusSpeedNum<<IDlenNum;
-    //BAUDRATE
+    switch(DeviceNum)//выбор интерфейса связт
+    {
+    case 0:
+        CAN_Adapter_ptr = &Systec_CAN;
+        break;
+    case 1:
+        CAN_Adapter_ptr = &Vul_Can;
+        //qDebug()<<"250";
+        break;
+    default:
+        break;
+    }
+
     DWORD USBCAN_BAUD = 0;
-    switch(BusSpeedNum)
+    switch(BusSpeedNum)//BAUDRATE
     {
     case 0:
         USBCAN_BAUD = USBCAN_BAUD_500kBit;
@@ -634,6 +586,6 @@ void MainWindow::ConnectSettingsChange(int DeviceNum, int BusSpeedNum, int IDlen
     ui->lineEdit_Tracking_ID->setValidator(m_hexIntegerValidator);
 
     tUcanInitCanParam InitCanParam_p = {sizeof(tUcanInitCanParam), kUcanModeNormal, HIBYTE (USBCAN_BAUD), LOBYTE (USBCAN_BAUD), true, 0xFFFFFFFF, 0x00000000, 0, 0, 0};
-    Systec_CAN_obj.CAN_ReInit_Systec(InitCanParam_p);
+    CAN_Adapter_ptr->ReInit(InitCanParam_p);
 
 }

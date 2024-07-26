@@ -8,7 +8,7 @@
 #include <QAxWidget> // для работы с вордом
 #include <QAxObject> // для работы с вордом
 
-#include <settingswindow.h>
+#include <settings_window.h>
 
 //File
 #include <QFile>
@@ -26,11 +26,12 @@
 #include <QCanBusDeviceInfo>
 
 //Systec
-#include "systec_can.h"
-
 #include "Usbcan32.h"
 #include "UsbCanLs.h"
 #include "UsbCanUp.h"
+#include "systec_can.h"
+#include "can_adapter.h"
+#include "vul_can.h"
 
 //#define bitIDlen11
 #define bitIDlen29
@@ -42,7 +43,7 @@
 #endif
 
 #ifdef bitIDlen29
-#define BAUDRATE USBCAN_BAUD_250kBit
+#define BAUDRATE USBCAN_BAUD_500kBit
 #define testerID 0x18DA40F1;
 #define ECUID 0x18DAF140;
 #define VALIDATORMAXID 0x1FFFFFFFF;
@@ -85,15 +86,16 @@ private slots:
     void on_CANStatusChanged(tStatusStruct * pStatus_p);
 
     void on_CANUSBConnectStatusChanged(int bEvent_p);
-    //void recivedFrame(tCanMsgStruct *CanMsgRx);
 
-    void on_comboBox_BusSpeed_currentIndexChanged(int index);
+    void recivedFrame(tCanMsgStruct *CanMsgRx);//это вывод всех приходящих фреймов
+
+    //void on_comboBox_BusSpeed_currentIndexChanged(int index);
     //void settingswindow::on_comboBox_BusSpeed_currentIndexChanged(int index);
 
-    void on_comboBox_IDlen_currentIndexChanged(int index);
+    //void on_comboBox_IDlen_currentIndexChanged(int index);
 
     void on_pushButton_Settings_clicked();
-public slots:
+
     void ConnectSettingsChange(int a, int b, int c);
 private:
 
@@ -108,7 +110,9 @@ private:
     //QList<QCanBusDevice::Filter> filterList;
 
     //----для либы Systec
-    Systec_CAN Systec_CAN_obj;// = new Systec_CAN(this);
+    Systec_CAN Systec_CAN;// = new Systec_CAN(this);
+    vul_can Vul_Can;
+    CAN_Adapter * CAN_Adapter_ptr = &Systec_CAN;//по умолчанию
     tUcanHandle *pUcanHandle_p = new tUcanHandle();// can;
     tCanMsgStruct CanMsgRx;// = new tCanMsgStruct;
     tCanMsgStruct CanMsgRxUDS;// = new tCanMsgStruct;

@@ -2,19 +2,18 @@
 //#include "mainwindow.h"
 #include <minwindef.h>
 
-//int b=7777;
-//extern int a;
 Systec_CAN * Systec_CAN_ptr=nullptr;
 
 Systec_CAN::Systec_CAN(QObject *parent)
-    : QObject{parent}
+    //: QObject{parent}
+    : CAN_Adapter{parent}
 {
     Systec_CAN_ptr=this;
 }
 
-uint Systec_CAN::CAN_Init_Systec(tUcanInitCanParam &InitCanParam_p)
+uint Systec_CAN::Init(tUcanInitCanParam &InitCanParam_p)
 {
-    qDebug()<<"Library ver.:"<<UcanGetVersion();
+    qDebug()<<"Systec INFO:\n"<<"Library ver.:"<<UcanGetVersion();
     RxQueue.clear();
     TxQueue.clear();
     if(auto errorCode=UcanInitHardware (pUcanHandle_p, USBCAN_ANY_MODULE, AppEventCallback))
@@ -34,7 +33,7 @@ uint Systec_CAN::CAN_Init_Systec(tUcanInitCanParam &InitCanParam_p)
     return 0;
 }
 
-uint Systec_CAN::CAN_ReInit_Systec(tUcanInitCanParam &InitCanParam_p)
+uint Systec_CAN::ReInit(tUcanInitCanParam &InitCanParam_p)
 {
     //UcanSetBaudrate (*pUcanHandle_p, HIBYTE (InitCanParam_p.m_dwBaudrate), LOBYTE (InitCanParam_p.m_dwBaudrate));
 
@@ -81,8 +80,8 @@ void PUBLIC Systec_CAN::AppEventCallback(tUcanHandle UcanHandle_p, TBYTE bEvent_
         UCANRET ret = UcanReadCanMsg (UcanHandle_p, &Systec_CAN_ptr->CanMsgRx);// из-за этого прога падает
         if(ret)
             qDebug()<<"Read Messege Error: "<<(int)ret;
-        //Systec_CAN_ptr->RxStack.push(Systec_CAN_ptr->CanMsgRx);
         Systec_CAN_ptr->RxQueue.enqueue(Systec_CAN_ptr->CanMsgRx);
+        //emit Systec_CAN_ptr->recivedFrame(&Systec_CAN_ptr->CanMsgRx);//это вывод всех приходящих фреймов
         break;
     }
     case(USBCAN_EVENT_STATUS):
@@ -96,21 +95,13 @@ void PUBLIC Systec_CAN::AppEventCallback(tUcanHandle UcanHandle_p, TBYTE bEvent_
     }
 
 }
-/*
-uint Systec_CAN::readtest(tUcanHandle UcanHandle_p)
-{
-    UcanReadCanMsg (UcanHandle_p, &Systec_CAN_ptr->CanMsgRx);
-    if(Systec_CAN_ptr->CanMsgRx.m_dwID==0x765)
-            Systec_CAN_ptr->RxStack.push(Systec_CAN_ptr->CanMsgRx);
-    return 0;
-}
-*/
-uint Systec_CAN::BUS_Status_Systec()
+
+uint Systec_CAN::BusStatus()
 {
     return UcanGetStatus (*pUcanHandle_p, pStatus_p);
 }
 
-UCANRET Systec_CAN::WriteMSG_Systec(tCanMsgStruct &CanMsgTx)
+UCANRET Systec_CAN::SendMsg(tCanMsgStruct &CanMsgTx)
 {
     //qDebug()<<CanMsgTx.m_dwID;
     //CanMsgTx.m_dwID=(quint32)0x18DD;//A40F1;
@@ -118,7 +109,7 @@ UCANRET Systec_CAN::WriteMSG_Systec(tCanMsgStruct &CanMsgTx)
     return UcanWriteCanMsg (*pUcanHandle_p, &CanMsgTx);
 }
 
-tCanMsgStruct Systec_CAN::ReadMSG_Systec()
+tCanMsgStruct Systec_CAN::ReadMsg()
 {
     //return RxStack.pop();
     return RxQueue.dequeue();
@@ -153,7 +144,7 @@ QString Systec_CAN::DeviceInfo()
     return ("Device Info\nHWnumber:"+ QString::number(pHwInfo_p->m_dwSerialNr)+"  Firmware:"+(QString::number(USBCAN_MAJOR_VER(UcanGetFwVersion(*pUcanHandle_p))) +"  Revision:"+QString::number(USBCAN_MINOR_VER(UcanGetFwVersion(*pUcanHandle_p)))+"  Release:"+QString::number(USBCAN_RELEASE_VER(UcanGetFwVersion(*pUcanHandle_p)))));
 }
 
-uint Systec_CAN::CAN_DeInit_Systec()
+uint Systec_CAN::DeInit()
 {
     UcanDeinitCan (*pUcanHandle_p);
     UcanDeinitHardware(*pUcanHandle_p);
@@ -162,5 +153,6 @@ uint Systec_CAN::CAN_DeInit_Systec()
 
 Systec_CAN::~Systec_CAN()
 {
-
+    UcanDeinitCan (*pUcanHandle_p);
+    UcanDeinitHardware(*pUcanHandle_p);
 }

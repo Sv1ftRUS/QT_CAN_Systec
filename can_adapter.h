@@ -1,41 +1,44 @@
-#ifndef SYSTEC_CAN_H
-#define SYSTEC_CAN_H
+#ifndef CAN_ADAPTER_H
+#define CAN_ADAPTER_H
 
 #include <QObject>
-#include <QtWidgets>
-#include <can_adapter.h>
+#include <minwindef.h>
+//#include "systec_can.h"
 
 //Systec
 #include "Usbcan32.h"
 #include "UsbCanLs.h"
 #include "UsbCanUp.h"
-//#include "mainwindow.h"
 
-
-//#define RxBufSize 100
-//#define TxBufSize 100
-
-
-class Systec_CAN : public CAN_Adapter //public QObject
+class CAN_Adapter : public QObject
 {
     Q_OBJECT
 public:
-    explicit Systec_CAN(QObject *parent = nullptr);
-    ~Systec_CAN() override;
+    explicit CAN_Adapter(QObject *parent = nullptr);
+    virtual ~CAN_Adapter()=0;
 
-    UCANRET SendMsg(tCanMsgStruct &CanMsgTx) override;
-    tCanMsgStruct ReadMsg() override;
+    //virtual UCANRET WriteMSG_Systec(tCanMsgStruct &CanMsgTx)=0;
+    virtual UCANRET SendMsg(tCanMsgStruct &CanMsgTx)=0;
+    virtual tCanMsgStruct ReadMsg()=0;
+    virtual bool TxBufIsEmpty()=0;
+    virtual bool RxBufIsEmpty()=0;
+    virtual uint BusStatus()=0;
+    virtual QString DeviceInfo()=0;
+    virtual uint Init(tUcanInitCanParam&)=0;
+    virtual uint ReInit(tUcanInitCanParam&)=0;
+    virtual uint DeInit()=0;
+    /*
+    UCANRET WriteMSG_Systec(tCanMsgStruct &CanMsgTx);
+    tCanMsgStruct ReadMSG_Systec();
 
-    bool TxBufIsEmpty() override;
-    bool RxBufIsEmpty() override;
+    bool TxBufIsEmpty();
+    bool RxBufIsEmpty();
 
-    uint BusStatus() override;
-    uint Init(tUcanInitCanParam&) override;
-    uint ReInit(tUcanInitCanParam&) override;
-    uint DeInit() override;
-    QString DeviceInfo() override;
-
-    //CAN_Adapter::~CAN_Adapter();
+    uint BUS_Status_Systec();
+    uint CAN_Init_Systec(tUcanInitCanParam&);
+    uint CAN_ReInit_Systec(tUcanInitCanParam&);
+    uint CAN_DeInit_Systec();
+    QString DeviceInfo();
 
     //QStack<tCanMsgStruct> TxStack;
     //QStack<tCanMsgStruct> RxStack;
@@ -71,12 +74,13 @@ private:
     //static void AppEventCallbackEx (tUcanHandle UcanHandle_p, TBYTE bEvent_p, void* pArg_p);
     //void AppEventCallback (tUcanHandle UcanHandle_p, TBYTE bEvent_p);
 
+*/
+//signals:
+    //void recivedFrame(tCanMsgStruct *CanMsgRx);//это вывод всех приходящих фреймов
+    //void CANStatusChanged(tStatusStruct*);
+    //void CANUSBConnectStatusChanged(int);
 
-signals:
-    /*static*/ void recivedFrame(tCanMsgStruct *CanMsgRx);//это вывод всех приходящих фреймов
-    void CANStatusChanged(tStatusStruct*);
-    void CANUSBConnectStatusChanged(int);
 
 };
 
-#endif // SYSTEC_CAN_H
+#endif // CAN_ADAPTER_H
