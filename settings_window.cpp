@@ -14,18 +14,33 @@ settingswindow::settingswindow(QWidget *parent) :
     //ui->comboBox_Device->addItem("VulCan");
 
     const auto serialPortInfos = QSerialPortInfo::availablePorts();
-    qDebug() <<"COM-Port INFO:";
+    qDebug() <<"COM-Port INFO111:";
         for (const QSerialPortInfo &portInfo : serialPortInfos) {
             qDebug() << "\n"
                      << "Port:" << portInfo.portName() << "\n"
                      << "Location:" << portInfo.systemLocation() << "\n"
                      << "Description:" << portInfo.description() << "\n";
+            ui->plainTextEdit_DeviceInfo->insertPlainText( "Port:" +portInfo.portName()+ "\n"
+                                                           + "Location:" + portInfo.systemLocation() + "\n"
+                                                           + "Description:" + portInfo.description() + "\n"
+                                                           + "Manufacturer:" + portInfo.manufacturer() + "\n"
+                                                           + "Serial number:" + portInfo.serialNumber() + "\n"
+                                                           + "Vendor Identifier:"
+                                                           + (portInfo.hasVendorIdentifier()
+                                                               ? QByteArray::number(portInfo.vendorIdentifier(), 16)
+                                                               : QByteArray()) + "\n"
+                                                           + "Product Identifier:"
+                                                           + (portInfo.hasProductIdentifier()
+                                                               ? QByteArray::number(portInfo.productIdentifier(), 16)
+                                                               : QByteArray())+"\n\n");
             ui->comboBox_Device->addItem(portInfo.portName());
     }
     ui->comboBox_BusSpeed->addItem("500 kBit/s");
     ui->comboBox_BusSpeed->addItem("250 kBit/s");
+    ui->comboBox_BusSpeed->addItem("1000 kBit/s");
     ui->comboBox_IDlen->addItem("ID 11 Bit");
     ui->comboBox_IDlen->addItem("ID 29 Bit");
+
 }
 
 settingswindow::~settingswindow()

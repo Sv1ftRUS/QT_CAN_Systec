@@ -9,13 +9,14 @@
 #include <QAxObject> // для работы с вордом
 
 #include <settings_window.h>
+#include <trace_window.h>
 
 //File
 #include <QFile>
 #include <QFileDialog>
 
 //Strings
-#include <QValidator>
+//#include <QValidator>
 #include <QRegularExpression>
 #include "qstring.h"
 
@@ -43,18 +44,17 @@
 #endif
 
 #ifdef bitIDlen29
-#define BAUDRATE USBCAN_BAUD_500kBit
-#define testerID 0x18DA40F1;
-#define ECUID 0x18DAF140;
+#define BAUDRATE USBCAN_BAUD_250kBit
+#define testerID 0x18DA1EF1;
+#define ECUID 0x18DAF11E;
 #define VALIDATORMAXID 0x1FFFFFFFF;
 #endif
+
+//CAN_Adapter * CAN_Adapter_ptr_GLOBAL=NULL;
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
-
-//class HexIntegerValidator;
-//class HexStringValidator;
 
 class MainWindow : public QMainWindow
 {
@@ -97,10 +97,14 @@ private slots:
     void on_pushButton_Settings_clicked();
 
     void ConnectSettingsChange(int a, int b, int c);
+
+    void on_pushButton_Trace_clicked();
+
 private:
 
     Ui::MainWindow *ui;
     settingswindow settingswindow;
+    Trace_window tracewindow;
     //----для либы Qt
     //QCanBusDevice   *m_device;
     //QCanBusFrame    *RxFrame = new QCanBusFrame(QCanBusFrame::DataFrame);
@@ -142,37 +146,4 @@ private:
     QAxObject *pRange = new QAxObject();
     QAxObject *pFind = new QAxObject();
 };
-
-
-
-
-class HexIntegerValidator : public QValidator
-{
-    Q_OBJECT
-public:
-    explicit HexIntegerValidator(QObject *parent = nullptr);
-
-    QValidator::State validate(QString &input, int &) const;
-
-    void setMaxID(qint64 maxID=0x7FF);
-
-private:
-    uint m_maximum = 0x7FF;
-};
-
-class HexStringValidator : public QValidator
-{
-    Q_OBJECT
-
-public:
-    explicit HexStringValidator(QObject *parent = nullptr);
-
-    QValidator::State validate(QString &input, int &pos) const;
-
-    void setMaxLength(int maxLength);
-
-private:
-    int m_maxLength = 0;
-};
-
 #endif // MAINWINDOW_H

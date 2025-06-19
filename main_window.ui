@@ -67,7 +67,7 @@
          </size>
         </property>
         <property name="text">
-         <string>0x18DAF140</string>
+         <string>0x18DAF11E</string>
         </property>
        </widget>
       </item>
@@ -193,7 +193,7 @@
          </size>
         </property>
         <property name="text">
-         <string>0x18DA40F1</string>
+         <string>0x18DA1EF1</string>
         </property>
        </widget>
       </item>
@@ -201,6 +201,13 @@
        <widget class="QPushButton" name="pushButton_Settings">
         <property name="text">
          <string>Settings</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="3">
+       <widget class="QPushButton" name="pushButton_Trace">
+        <property name="text">
+         <string>Trace</string>
         </property>
        </widget>
       </item>

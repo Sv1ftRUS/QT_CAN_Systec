@@ -5,9 +5,18 @@
 #include <QtWidgets>
 #include <can_adapter.h>
 #include <QDebug>
-
 #include <QSerialPort.h>
 #include <QSerialPortInfo>
+
+#define PC_toCAN_msgLength 36
+
+enum msgType //типы сообщений между адаптером и PC
+{
+    PC_toCAN_State,
+    PC_toCAN,
+    CAN_toPC_State,
+    CAN_toPC
+};
 
 class vul_can : public CAN_Adapter //, QSerialPort
 {
@@ -17,6 +26,7 @@ public:
     ~vul_can() override;
 
     UCANRET SendMsg(tCanMsgStruct &CanMsgTx) override;
+    //static UCANRET SendMsgTest(tCanMsgStruct &CanMsgTx);
     tCanMsgStruct ReadMsg() override;
 
     bool TxBufIsEmpty() override;
@@ -37,19 +47,16 @@ public:
    // void serialPortTransmit();
 
     tCanMsgStruct CanMsgRx;// = new tCanMsgStruct;
+    tCanMsgStruct CanMsgTx;
 
-    public slots:
-   void Vul_Can_RxSlot();
-
+public slots:
+    void Vul_Can_RxSlot();
 
 signals:
     void Vul_Can_readyRead(tCanMsgStruct *CanMsgRx);
 
-
 private:
     //----для либы Systec
-    uint a;
-
     //tCanMsgStruct CanMsgRx;// = new tCanMsgStruct;
     //tCanMsgStruct CanMsgTx;
     //tStatusStruct *pStatus_p = new tStatusStruct();

@@ -37,7 +37,7 @@ uint Systec_CAN::ReInit(tUcanInitCanParam &InitCanParam_p)
 {
     //UcanSetBaudrate (*pUcanHandle_p, HIBYTE (InitCanParam_p.m_dwBaudrate), LOBYTE (InitCanParam_p.m_dwBaudrate));
 
-    qDebug()<<"reinit CAN";
+    qDebug()<<"Reinit Systec";
     if(auto errorCode=UcanDeinitCan(*pUcanHandle_p))
     {
         qDebug()<<"reinit DeinitCAN_Init error:"<<errorCode;
@@ -81,7 +81,7 @@ void PUBLIC Systec_CAN::AppEventCallback(tUcanHandle UcanHandle_p, TBYTE bEvent_
         if(ret)
             qDebug()<<"Read Messege Error: "<<(int)ret;
         Systec_CAN_ptr->RxQueue.enqueue(Systec_CAN_ptr->CanMsgRx);
-        //emit Systec_CAN_ptr->recivedFrame(&Systec_CAN_ptr->CanMsgRx);//это вывод всех приходящих фреймов
+        emit Systec_CAN_ptr->recivedFrame(&Systec_CAN_ptr->CanMsgRx);//это вывод всех приходящих фреймов
         break;
     }
     case(USBCAN_EVENT_STATUS):
@@ -125,17 +125,6 @@ bool Systec_CAN::TxBufIsEmpty()
 {
     return TxQueue.isEmpty();
 }
-/*
-void Systec_CAN::RxBufClear()
-{
-    return RxStack.clear();
-}
-
-void Systec_CAN::TxBufClear()
-{
-    return TxStack.clear();
-}
-*/
 
 QString Systec_CAN::DeviceInfo()
 {

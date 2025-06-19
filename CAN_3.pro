@@ -15,6 +15,8 @@ SOURCES += \
     main_window.cpp \
     settings_window.cpp \
     systec_can.cpp \
+    trace_window.cpp \
+    validators.cpp \
     vul_can.cpp
 
 HEADERS += \
@@ -22,11 +24,14 @@ HEADERS += \
     main_window.h \
     settings_window.h \
     systec_can.h \
+    trace_window.h \
+    validators.h \
     vul_can.h
 
 FORMS += \
     main_window.ui \
-    settings_window.ui
+    settings_window.ui \
+    trace_window.ui
 
 #win32:RC_FILE = file.rc #иконка приложенияwin32:RC_FILE = file.rc #иконка приложения
 

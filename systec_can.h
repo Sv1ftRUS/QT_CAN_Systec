@@ -73,7 +73,7 @@ private:
 
 
 signals:
-    /*static*/ void recivedFrame(tCanMsgStruct *CanMsgRx);//это вывод всех приходящих фреймов
+    void recivedFrame(tCanMsgStruct *CanMsgRx);//это вывод всех приходящих фреймов
     void CANStatusChanged(tStatusStruct*);
     void CANUSBConnectStatusChanged(int);
 
