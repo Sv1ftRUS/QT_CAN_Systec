@@ -9,6 +9,7 @@
 #include <QSerialPortInfo>
 
 #define PC_toCAN_msgLength 36
+#define CAN_toPC_msgLength 13
 
 enum msgType //типы сообщений между адаптером и PC
 {

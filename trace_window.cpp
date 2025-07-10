@@ -152,6 +152,14 @@ bool Trace_window::SendOnPushAndTime(const QLineEdit *MsgId,const QLineEdit* Msg
     auto ret=ptr->SendMsg(CanMsg);
     if(ret)
         qDebug()<<"Push Button Send Error:"<<(int) ret;
+    /*
+    //выравнивание текста
+    static QTextCursor cursor = ui->plainTextEdit_Trace->textCursor();
+    static QTextBlockFormat format;
+    format.setAlignment(Qt::AlignCenter); // или Qt::AlignLeft, Qt::AlignRight, Qt::AlignJustify
+    cursor.setBlockFormat(format);
+    ui->plainTextEdit_Trace->setTextCursor(cursor);
+    */
     ui->plainTextEdit_Trace->insertPlainText("Tx:  "+ printCanMsg(CanMsg)+"\n");
     ui->plainTextEdit_Trace->verticalScrollBar()->setValue(ui->plainTextEdit_Trace->verticalScrollBar()->maximum());//автосдвиг
     return true;

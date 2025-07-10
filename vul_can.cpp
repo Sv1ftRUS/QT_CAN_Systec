@@ -4,12 +4,12 @@ vul_can::vul_can(QObject *parent) : CAN_Adapter{parent}//, QSerialPort{parent}
 {
 
     const auto serialPortInfos = QSerialPortInfo::availablePorts();
-    Vul_Can->setBaudRate(921600);//(9600);//(230400);//(460800);
+    Vul_Can->setBaudRate(921600);//(38400);//(115200);//(921600);//(9600);//(230400);//(460800);
     Vul_Can->setDataBits(QSerialPort::Data8);
     Vul_Can->setParity(QSerialPort::NoParity);
     Vul_Can->setStopBits(QSerialPort::OneStop);
     Vul_Can->setFlowControl(QSerialPort::NoFlowControl);
-    Vul_Can->setPortName("COM10");
+    Vul_Can->setPortName("COM9");//                                                                                         !!!!!!
     if (!Vul_Can->open(QIODevice::ReadWrite)) {
          // если подключится не получится, то покажем сообщение с ошибкой
          //QMessageBox::warning(this, "Ошибка", "Не удалось подключится к порту");
@@ -70,9 +70,6 @@ BYTE vul_can::SendMsg(tCanMsgStruct &CanMsgTx)
     Arr[34]=CanMsgTx.m_bData[6];
     Arr[35]=CanMsgTx.m_bData[7];
     Vul_Can->write(Arr, PC_toCAN_msgLength);
-    //Vul_Can->write(Arr, PC_toCAN_msgLength);
-    //Vul_Can->write(Arr, PC_toCAN_msgLength);
-
     return 0;
 }
 
@@ -187,16 +184,14 @@ uint vul_can::ReInit(tUcanInitCanParam &InitCanParam_p)
     qDebug()<<InitCanParam_p.m_dwBaudrate;
     if(InitCanParam_p.m_dwBaudrate==USBCAN_BAUD_500kBit)//что-то тут не работает, всегда InitCanParam_p.m_dwBaudrate=0
     {
-        Arr[6]=0x08;//Prescaler/ 8-500kbit/s    16-250kbit/s <---Check-Ok!
-        qDebug()<<"InitValue 0x08";
+        Arr[6]=(uint8_t)0x08;//Prescaler/ 8-500kbit/s    16-250kbit/s <---Check-Ok!
+        qDebug()<<"InitValue 0x08 "<<(uint8_t)Arr[6];
     }
     else
     {
         Arr[6]=0x10;//Prescaler/ 8-500kbit/s    16-250kbit/s <---Check-Ok!
         qDebug()<<"InitValue 0x10";
     }
-
-
     Arr[7]=0x00;//Mode CAN_MODE_NORMAL
 
     Arr[8]=0x00;//SyncJumpWidth = CAN_SJW_1TQ
@@ -247,8 +242,17 @@ uint vul_can::ReInit(tUcanInitCanParam &InitCanParam_p)
 
 uint vul_can::DeInit()
 {
-    qDebug()<<6;
-
+    //почени
+    /*
+    static QByteArray Arr(PC_toCAN_msgLength, 0xCC);
+    Arr[0]=PC_toCAN_State;//msgType
+    Arr[1]=0x00;
+    Arr[2]=0x00;
+    Arr[3]=0x00;
+    Arr[4]=0x00;//Communication - Disconnect
+    Vul_Can->write(Arr, PC_toCAN_msgLength);
+    qDebug()<<"Disconnect CAN";
+    */
 }
 
 QString vul_can::DeviceInfo()
@@ -259,9 +263,14 @@ QString vul_can::DeviceInfo()
 
 void vul_can::Vul_Can_RxSlot()
 {
-    auto Arr = Vul_Can->readAll();//.toHex();
-    //qDebug()<<Arr.data()<<"|"<<Arr[1]<<"|"<<Arr[2]<<"|"<<Arr[3]<<"|";
+    //auto Arr = Vul_Can->readAll();//.toHex();
+    //qDebug()<<Arr.data();//<<"|"<<Arr[1]<<"|"<<Arr[2]<<"|"<<Arr[3]<<"|";
+    //Vul_Can->read(Arr, 13);
     //qDebug()<<Arr.toHex();
+    //qDebug()<<Arr;
+    static char Arr[CAN_toPC_msgLength];
+    Vul_Can->read(Arr,sizeof (Arr));//.toHex();
+
     CanMsgRx.m_dwID=((unsigned char)Arr[0]) | (((unsigned char)Arr[1])<<8) | (((unsigned char)Arr[2])<<16) | (((unsigned char)(Arr[3])&0x1F) << 24);
     CanMsgRx.m_bFF=0;
     CanMsgRx.m_bDLC=Arr[4] & 0x0F;
@@ -274,5 +283,21 @@ void vul_can::Vul_Can_RxSlot()
     CanMsgRx.m_bData[6]=Arr[11];
     CanMsgRx.m_bData[7]=Arr[12];
     //RxQueue.enqueue(CanMsgRx);
+
+    //test
+/*
+    CanMsgRx.m_dwID=0x12345678;
+    CanMsgRx.m_bFF=0;
+    CanMsgRx.m_bDLC=0x08;
+    CanMsgRx.m_bData[0]=1;
+    CanMsgRx.m_bData[1]=2;
+    CanMsgRx.m_bData[2]=3;
+    CanMsgRx.m_bData[3]=4;
+    CanMsgRx.m_bData[4]=5;
+    CanMsgRx.m_bData[5]=6;
+    CanMsgRx.m_bData[6]=7;
+    CanMsgRx.m_bData[7]=8;
+*/
+    //vul_can->RxQueue.enqueue(Systec_CAN_ptr->CanMsgRx);
     emit Vul_Can_readyRead(&CanMsgRx);
 }
